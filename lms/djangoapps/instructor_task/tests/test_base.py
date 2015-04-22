@@ -260,7 +260,9 @@ class InstructorTaskModuleTestCase(InstructorTaskCourseTestCase):
         # make ajax call:
         modx_url = reverse('xblock_handler', kwargs={
             'course_id': self.course.id.to_deprecated_string(),
-            'usage_id': quote_slashes(InstructorTaskModuleTestCase.problem_location(problem_url_name).to_deprecated_string()),
+            'usage_id': quote_slashes(
+                InstructorTaskModuleTestCase.problem_location(problem_url_name).to_deprecated_string()
+            ),
             'handler': 'xmodule_handler',
             'suffix': 'problem_check',
         })
@@ -298,6 +300,9 @@ class TestReportMixin(object):
                 contain data which is the sub set of actual csv rows.
         """
         def sub_dict(main_dict, keys):
+            """
+            Make a new dict with `keys` and values from `main_dict`.
+            """
             return {key: main_dict.get(key) for key in keys}
 
         report_store = ReportStore.from_config()

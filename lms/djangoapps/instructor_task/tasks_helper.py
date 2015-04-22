@@ -553,10 +553,16 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp):
 
 
 def is_eligible_for_certificate(embargoed, whitelisted, grade):
+    """
+    Check if user is eligible for certificate.
+    """
     return not embargoed and (whitelisted or grade is not None)
 
 
 def is_certificate_delivered(embargoed, whitelisted, certificate_status):
+    """
+    Check if certificate is generated and delivered to user.
+    """
     return not embargoed and (whitelisted or certificate_status['status'] == CertificateStatuses.downloadable)
 
 

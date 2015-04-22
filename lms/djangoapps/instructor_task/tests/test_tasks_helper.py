@@ -13,22 +13,18 @@ import unicodecsv
 
 from capa.tests.response_xml_factory import MultipleChoiceResponseXMLFactory
 from certificates.tests.factories import GeneratedCertificateFactory
-from certificates.models import CertificateWhitelist, CertificateStatuses
+from certificates.models import CertificateWhitelist
 from django.contrib.auth.models import User
 from course_modes.models import CourseMode
 from instructor_task.models import ReportStore
-from instructor_task.tasks_helper import (cohort_students_and_upload,
-                                          upload_grades_csv,
-                                          upload_students_csv,
-                                          generate_certificates_data)
+from instructor_task.tasks_helper import cohort_students_and_upload, upload_grades_csv, upload_students_csv
 from instructor_task.tests.test_base import InstructorTaskCourseTestCase, TestReportMixin, InstructorTaskModuleTestCase
 from openedx.core.djangoapps.course_groups.models import CourseUserGroupPartitionGroup
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
 import openedx.core.djangoapps.user_api.course_tag.api as course_tag_api
 from openedx.core.djangoapps.user_api.partition_schemes import RandomUserPartitionScheme
-from student.tests.factories import UserFactory, UserProfileFactory
+from student.tests.factories import UserFactory
 from student.models import CourseEnrollment
-from reverification.tests.factories import MidcourseReverificationWindowFactory
 from verify_student.models import SoftwareSecurePhotoVerification
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.partitions.partitions import Group, UserPartition
@@ -552,6 +548,7 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
 @patch('instructor_task.tasks_helper.DefaultStorage', new=MockDefaultStorage)
 class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCase):
     """
+    Test that user certificate info in grade report works.
     """
     def setUp(self):
         super(TestGradeReportCertificateInfo, self).setUp()
@@ -622,6 +619,9 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
         attempt.save()
 
     def _verify_csv_certificate_data(self, username, expected_data):
+        """
+        Verify grade report data.
+        """
         with patch('instructor_task.tasks_helper._get_current_task'):
             upload_grades_csv(None, None, self.course.id, None, 'graded')
             report_store = ReportStore.from_config()
@@ -641,6 +641,9 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
                           certificate_status,
                           certificate_mode,
                           expected_data):
+        """
+        Create user data to be used during grade report generation.
+        """
 
         self.create_student('u1', mode=user_enroll_mode)
         user = User.objects.get(username='u1')
