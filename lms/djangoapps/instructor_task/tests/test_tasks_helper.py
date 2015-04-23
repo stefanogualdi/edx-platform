@@ -548,7 +548,7 @@ class TestCohortStudents(TestReportMixin, InstructorTaskCourseTestCase):
 @patch('instructor_task.tasks_helper.DefaultStorage', new=MockDefaultStorage)
 class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCase):
     """
-    Test that user certificate info in grade report works.
+    Test that grade report has correct user certificate information.
     """
     def setUp(self):
         super(TestGradeReportCertificateInfo, self).setUp()
@@ -558,10 +558,10 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
         self.create_problem()
 
         self.csv_cert_info_header = [
-            'Certificate Eligible',
-            'Certificate Delivered',
             'Enrollment Track',
             'Verification Status',
+            'Certificate Eligible',
+            'Certificate Delivered',
             'Certificate Type'
         ]
 
@@ -602,12 +602,12 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
         cert_whitelist.whitelist = state
         cert_whitelist.save()
 
-    def user_is_embargoed(self, user, state):
+    def user_is_embargoed(self, user, is_embargoed):
         """
         Set a users emabargo state.
         """
         user_profile = UserFactory(username=user.username, email=user.email).profile
-        user_profile.allow_certificate = not state
+        user_profile.allow_certificate = not is_embargoed
         user_profile.save()
 
     def set_user_verification_status(self, user, status):
@@ -636,7 +636,7 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
                           user_enroll_mode,
                           has_passed,
                           whitelisted,
-                          embargoed,
+                          is_embargoed,
                           verification_status,
                           certificate_status,
                           certificate_mode,
@@ -653,7 +653,7 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
 
         self.user_in_whitelist(user, self.course.id, whitelisted)
 
-        self.user_is_embargoed(user, embargoed)
+        self.user_is_embargoed(user, is_embargoed)
 
         if user_enroll_mode in CourseMode.VERIFIED_MODES:
             self.set_user_verification_status(user, verification_status)
@@ -671,11 +671,11 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
             user_enroll_mode='verified',
             has_passed=False,
             whitelisted=False,
-            embargoed=False,
+            is_embargoed=False,
             verification_status='approved',
             certificate_status='notpassing',
             certificate_mode='honor',
-            expected_data=['N', 'N', 'verified', 'ID Verified', 'N/A']
+            expected_data=['verified', 'ID Verified', 'N', 'N', 'N/A']
         )
 
     def test_failed_whitelist_user_certificate_info(self):
@@ -686,11 +686,11 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
             user_enroll_mode='verified',
             has_passed=False,
             whitelisted=True,
-            embargoed=False,
+            is_embargoed=False,
             verification_status='approved',
             certificate_status='downloadable',
             certificate_mode='verified',
-            expected_data=['Y', 'Y', 'verified', 'ID Verified', 'verified']
+            expected_data=['verified', 'ID Verified', 'Y', 'Y', 'verified']
         )
 
     def test_embargoed_user_certificate_info(self):
@@ -701,11 +701,11 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
             user_enroll_mode='honor',
             has_passed=True,
             whitelisted=True,
-            embargoed=True,
+            is_embargoed=True,
             verification_status='approved',
             certificate_status='restricted',
             certificate_mode='honor',
-            expected_data=['N', 'N', 'honor', 'ID Verified', 'N/A']
+            expected_data=['honor', 'ID Verified', 'N', 'N', 'N/A']
         )
 
     def test_verification_expired_user_certificate_info(self):
@@ -716,9 +716,9 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
             user_enroll_mode='verified',
             has_passed=True,
             whitelisted=True,
-            embargoed=False,
+            is_embargoed=False,
             verification_status='must_retry',
             certificate_status='downloadable',
             certificate_mode='honor',
-            expected_data=['Y', 'Y', 'verified', 'Not ID Verified', 'honor']
+            expected_data=['verified', 'Not ID Verified', 'Y', 'Y', 'honor']
         )

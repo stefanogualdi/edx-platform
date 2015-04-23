@@ -9,7 +9,6 @@ import shutil
 import unicodecsv
 from uuid import uuid4
 
-
 from celery.states import SUCCESS, FAILURE
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -297,7 +296,7 @@ class TestReportMixin(object):
                 actual csv rows.  When False (default), we only verify
                 that the content matches.
             sub_dict_match (boolean): When True, we verify that `expected_rows`
-                contain data which is the sub set of actual csv rows.
+                contain data which is the subset of actual csv rows.
         """
         def sub_dict(main_dict, keys):
             """
