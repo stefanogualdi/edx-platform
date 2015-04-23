@@ -559,11 +559,11 @@ def is_eligible_for_certificate(embargoed, whitelisted, grade):
     return not embargoed and (whitelisted or grade is not None)
 
 
-def is_certificate_delivered(embargoed, whitelisted, certificate_status):
+def is_certificate_delivered(embargoed, whitelisted, certificate_generated):
     """
     Check if certificate is generated and delivered to user.
     """
-    return not embargoed and (whitelisted or certificate_status['status'] == CertificateStatuses.downloadable)
+    return not embargoed and (whitelisted or certificate_generated)
 
 
 def verification_status(user, course_id):
@@ -582,15 +582,6 @@ def verification_status(user, course_id):
         return 'Not ID Verified'
 
 
-def certificate_type(certificate_status):
-    """
-    Returns certificate mode if status is not 'unavailable'
-    """
-    if certificate_status['status'] == CertificateStatuses.unavailable:
-        return 'N/A'
-    return certificate_status['mode']
-
-
 def generate_certificates_data(user, course_id, grade):
     """
     Generates and return the user data related to the certificates for a particular course.
@@ -604,16 +595,17 @@ def generate_certificates_data(user, course_id, grade):
     if eligible_for_certificate:
         is_eligible = 'Y'
         certificate_status = certificate_status_for_student(user, course_id)
+        certificate_generated = certificate_status['status'] == CertificateStatuses.downloadable
         is_delivered = 'Y' if is_certificate_delivered(
             user_in_embargoed_list,
             user_in_white_list,
-            certificate_status
+            certificate_generated
         ) else 'N'
-        cert_type = certificate_type(certificate_status)
+        certificate_type = certificate_status['mode'] if certificate_generated else 'N/A'
     else:
         is_eligible = 'N'
         is_delivered = 'N'
-        cert_type = 'N/A'
+        certificate_type = 'N/A'
 
     user_enrollment_mode = CourseEnrollment.enrollment_mode_for_user(user, course_id)[0]
     # Respective data fields are listed below:
@@ -623,7 +615,7 @@ def generate_certificates_data(user, course_id, grade):
         is_delivered,
         user_enrollment_mode,
         verification_status(user, course_id) if user_enrollment_mode in CourseMode.VERIFIED_MODES else 'ID Verified',
-        cert_type
+        certificate_type
     ]
     return data
 
