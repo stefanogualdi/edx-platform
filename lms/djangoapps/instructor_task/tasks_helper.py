@@ -36,7 +36,7 @@ from openedx.core.djangoapps.course_groups.cohorts import get_cohort
 from openedx.core.djangoapps.course_groups.models import CourseUserGroup
 from opaque_keys.edx.keys import UsageKey
 from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort, is_course_cohorted
-from student.models import UserProfile, CourseEnrollment
+from student.models import CourseEnrollment
 from verify_student.models import SoftwareSecurePhotoVerification
 
 
