@@ -22,8 +22,7 @@ from util.file import course_filename_prefix_generator, UniversalNewlineIterator
 from xmodule.modulestore.django import modulestore
 from xmodule.split_test_module import get_split_user_partitions
 
-from certificates.models import CertificateWhitelist, CertificateStatuses, certificate_status_for_student
-from course_modes.models import CourseMode
+from certificates.models import CertificateWhitelist, certificate_info_for_user
 from courseware.courses import get_course_by_id, get_problems_in_section
 from courseware.grades import iterate_grades_for
 from courseware.models import StudentModule
@@ -552,52 +551,6 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp):
     )
 
 
-def verification_status_for_user(user, course_id, user_enrollment_mode):
-    """
-    Returns the verification status.
-    """
-    if user_enrollment_mode not in CourseMode.VERIFIED_MODES:
-        return 'ID Verified'
-
-    user_is_verified = SoftwareSecurePhotoVerification.user_is_verified(user)
-
-    if not user_is_verified:
-        return 'Not ID Verified'
-    else:
-        user_is_re_verified = SoftwareSecurePhotoVerification.user_is_reverified_for_all(course_id, user)
-        if not user_is_re_verified:
-            return 'ID Verification Expired'
-        else:
-            return 'ID Verified'
-
-
-def certificate_info_for_user(user, course_id, whitelist_user_ids, grade):
-    """
-    Returns the certificate info for a user for a particular course.
-    """
-    user_in_embargoed_list = UserProfile.objects.filter(user=user, allow_certificate=False).exists()
-    eligible_for_certificate = not user_in_embargoed_list and (user.id in whitelist_user_ids or grade is not None)
-
-    if eligible_for_certificate:
-        is_eligible = 'Y'
-        certificate_status = certificate_status_for_student(user, course_id)
-        certificate_generated = certificate_status['status'] == CertificateStatuses.downloadable
-        is_delivered = 'Y' if not user_in_embargoed_list and (user_in_embargoed_list or certificate_generated) else 'N'
-        certificate_type = certificate_status['mode'] if certificate_generated else 'N/A'
-    else:
-        is_eligible = 'N'
-        is_delivered = 'N'
-        certificate_type = 'N/A'
-
-    # ['Certificate Eligible', 'Certificate Delivered', 'Certificate Type']
-    info = [
-        is_eligible,
-        is_delivered,
-        certificate_type
-    ]
-    return info
-
-
 def upload_grades_csv(_xmodule_instance_args, _entry_id, course_id, _task_input, action_name):  # pylint: disable=too-many-statements
     """
     For a given `course_id`, generate a grades CSV file for all students that
@@ -634,8 +587,8 @@ def upload_grades_csv(_xmodule_instance_args, _entry_id, course_id, _task_input,
     group_configs_header = [u'Experiment Group ({})'.format(partition.name) for partition in experiment_partitions]
 
     certificate_info_header = ['Certificate Eligible', 'Certificate Delivered', 'Certificate Type']
-    whitelist_query = CertificateWhitelist.objects.filter(course_id=course_id, whitelist=True)
-    whitelist_user_ids = [whitelist.user_id for whitelist in whitelist_query]
+    certificate_whitelist = CertificateWhitelist.objects.filter(course_id=course_id, whitelist=True)
+    whitelisted_user_ids = [entry.user_id for entry in certificate_whitelist]
 
     # Loop over all our students and build our CSV lists in memory
     header = None
@@ -697,8 +650,17 @@ def upload_grades_csv(_xmodule_instance_args, _entry_id, course_id, _task_input,
                 group_configs_group_names.append(group.name if group else '')
 
             enrollment_mode = CourseEnrollment.enrollment_mode_for_user(student, course_id)[0]
-            verification_status = verification_status_for_user(student, course_id, enrollment_mode)
-            certificate_info = certificate_info_for_user(student, course_id, whitelist_user_ids, gradeset['grade'])
+            verification_status = SoftwareSecurePhotoVerification.verification_status_for_user(
+                student,
+                course_id,
+                enrollment_mode
+            )
+            certificate_info = certificate_info_for_user(
+                student,
+                course_id,
+                gradeset['grade'],
+                student.id in whitelisted_user_ids
+            )
 
             # Not everybody has the same gradable items. If the item is not
             # found in the user's gradeset, just assume it's a 0. The aggregated

@@ -705,7 +705,7 @@ class TestGradeReportCertificateInfo(TestReportMixin, InstructorTaskModuleTestCa
             verification_status='approved',
             certificate_status='restricted',
             certificate_mode='honor',
-            expected_data=['honor', 'ID Verified', 'N', 'N', 'N/A']
+            expected_data=['honor', 'N/A', 'N', 'N', 'N/A']
         )
 
     def test_verification_expired_user_certificate_info(self):
